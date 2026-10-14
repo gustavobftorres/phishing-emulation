@@ -1004,14 +1004,71 @@ function MessagePreview({ scenarioId, recipientId }: { scenarioId: ScenarioId; r
   );
 }
 
+function ObserverSummary({ state }: { state: LabState }) {
+  const has = (type: EventType) => state.events.some((event) => event.type === type);
+  const clicked = has('http_get');
+  const browserShared = has('browser_properties_transmitted');
+  const formSubmitted = has('http_post');
+  const compromiseShown = has('compromise_simulated');
+  const received = (clicked ? 4 : 0) + (browserShared ? 4 : 0) + (formSubmitted ? 2 : 0);
+  const simulated = compromiseShown ? 4 : 0;
+  const total = 1 + received + simulated;
+  const phase = compromiseShown
+    ? ['Impacto máximo demonstrado', 'Além dos dados realmente recebidos, a tela mostra quatro consequências hipotéticas claramente marcadas como simulação.']
+    : formSubmitted
+      ? ['Dados digitados foram enviados', 'O servidor já conhece a conexão, o dispositivo e os valores preenchidos no formulário fictício.']
+      : browserShared
+        ? ['Dispositivo reconhecido', 'O clique já foi relacionado à pessoa fictícia e novas características do navegador chegaram ao servidor.']
+        : clicked
+          ? ['O link foi aberto', 'A conexão entregou metadados e o identificador personalizado presente no endereço.']
+          : ['Antes do clique', 'O atacante conhece somente a pessoa associada ao link personalizado da campanha fictícia.'];
+
+  return (
+    <aside className="observer-summary" data-testid="observer-summary">
+      <section className="observer-risk-card">
+        <div className="observer-risk-heading"><span><i className="pulse-dot" /> SITUAÇÃO ATUAL</span><b>{total}</b></div>
+        <h2>{phase[0]}</h2>
+        <p>{phase[1]}</p>
+        <div className="observer-counts">
+          <div className="inferred"><b>1</b><span>já conhecido</span></div>
+          <div className="observed"><b>{received}</b><span>recebidos</span></div>
+          <div className="simulated"><b>{simulated}</b><span>simulados</span></div>
+        </div>
+      </section>
+
+      <section className="observer-legend-card">
+        <p>COMO INTERPRETAR</p>
+        <h3>Nem tudo veio do clique</h3>
+        <div className="observer-legend-row inferred"><Database size={18} /><span><b>Já conhecido</b>Informação que existia na campanha antes da vítima agir.</span></div>
+        <div className="observer-legend-row observed"><Network size={18} /><span><b>Recebido de verdade</b>Dado que chegou ao servidor local por uma requisição.</span></div>
+        <div className="observer-legend-row simulated"><Sparkles size={18} /><span><b>Somente simulação</b>Consequência hipotética; nenhum arquivo ou login real foi acessado.</span></div>
+      </section>
+
+      <section className="observer-takeaway">
+        <ShieldAlert size={22} />
+        <span><b>Mensagem principal</b>Um único clique inicia a correlação. Cada ação seguinte aumenta o que o atacante consegue saber.</span>
+      </section>
+    </aside>
+  );
+}
+
 function AttackerView({ lab }: { lab: ReturnType<typeof useLab> }) {
+  const scenario = scenarios[lab.state.scenarioId];
+  const employee = fictionalEmployees[lab.state.recipientId];
   return (
     <Shell connected={lab.connected} reset={lab.reset}>
-      <main className="page-shell">
-        <div className="page-heading"><div><p className="kicker">Perspective 02</p><h1>What the receiving server can see</h1><p>Real local requests, clearly separated from simulated browser actions.</p></div><ScenarioSelect value={lab.state.scenarioId} onChange={lab.selectScenario} /></div>
-        <div className="attacker-page-grid">
-          <div><MessagePreview scenarioId={lab.state.scenarioId} recipientId={lab.state.recipientId} /></div>
-          <AttackerPanel state={lab.state} onScenario={lab.selectScenario} onRecipient={lab.selectRecipient} />
+      <main className="page-shell observer-page">
+        <div className="page-heading observer-page-heading">
+          <div><p className="kicker">VISÃO DO ATACANTE</p><h1>O que o atacante sabe agora</h1><p>Apenas informações que realmente ampliam o vazamento aparecem nesta tela.</p></div>
+          <div className="observer-selects"><ScenarioSelect value={lab.state.scenarioId} onChange={lab.selectScenario} /><RecipientSelect value={lab.state.recipientId} onChange={lab.selectRecipient} /></div>
+        </div>
+        <section className="observer-context" aria-label="Contexto da demonstração">
+          <div><span>CAMPANHA FICTÍCIA</span><b>{scenario.subject}</b></div>
+          <div><span>PESSOA ASSOCIADA</span><b>{employee.name} · {employee.department}</b></div>
+        </section>
+        <div className="observer-focus-grid">
+          <AttackerAccessList state={lab.state} />
+          <ObserverSummary state={lab.state} />
         </div>
       </main>
     </Shell>
