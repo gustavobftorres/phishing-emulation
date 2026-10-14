@@ -81,3 +81,13 @@ test('sophisticated attack mode builds a non-technical attacker dossier in real 
   await expect(page.getByTestId('attacker-access-list')).toContainText('Nenhum arquivo, cookie ou sessão real foi acessado');
   await expect(page.getByTestId('sophisticated-demo-guide')).toContainText('Demonstração concluída');
 });
+
+test('observer prioritizes readable exposure information without technical clutter', async ({ page }) => {
+  await page.goto('/attacker');
+  await expect(page.getByRole('heading', { name: 'O que o atacante sabe agora' })).toBeVisible();
+  await expect(page.getByTestId('attacker-access-list')).toBeVisible();
+  await expect(page.getByTestId('observer-summary')).toContainText('Nem tudo veio do clique');
+  await expect(page.getByTestId('leak-item-identity')).toContainText('Alex Example');
+  await expect(page.getByRole('button', { name: 'Linha do tempo' })).toHaveCount(0);
+  await expect(page.getByText('Detalhes da evidência')).toHaveCount(0);
+});
